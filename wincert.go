@@ -274,6 +274,7 @@ func buildCertChains(trusted *x509.Certificate, untrusted []*x509.Certificate, c
 	}
 
 	current := chain[len(chain)-1]
+	fmt.Fprintf(os.Stderr, "buildCertChains current %v\n", current)
 
 	if !isSelfSignedCert(current) {
 		fmt.Fprintf(os.Stderr, "buildCertChains not self signed %v\n", current)
@@ -298,6 +299,7 @@ func buildCertChains(trusted *x509.Certificate, untrusted []*x509.Certificate, c
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "buildCertChains current %v trusted %v\n", current, trusted)
 	if current.Equal(trusted) {
 		fmt.Fprintf(os.Stderr, "buildCertChains adding trusted\n")
 		chains = append(chains, chain)
