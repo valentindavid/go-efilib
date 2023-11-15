@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
 	"golang.org/x/crypto/cryptobyte"
 	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
@@ -253,6 +254,7 @@ func isSelfSignedCert(cert *x509.Certificate) bool {
 }
 
 func buildCertChains(trusted *x509.Certificate, untrusted []*x509.Certificate, chain []*x509.Certificate, depth *int) (chains [][]*x509.Certificate) {
+	fmt.Fprintf(os.Stderr, "buildCertChains\n")
 	alreadyInChain := func(x *x509.Certificate) bool {
 		for _, c := range chain {
 			if c.Equal(x) {
@@ -267,30 +269,41 @@ func buildCertChains(trusted *x509.Certificate, untrusted []*x509.Certificate, c
 	}
 	*depth++
 	if *depth > 100 {
+		fmt.Fprintf(os.Stderr, "buildCertChains too deep\n")
 		return nil
 	}
 
 	current := chain[len(chain)-1]
 
 	if !isSelfSignedCert(current) {
+		fmt.Fprintf(os.Stderr, "buildCertChains not self signed %v\n", current)
+
 		for _, x := range untrusted {
+			fmt.Fprintf(os.Stderr, "buildCertChains untrusted: %v\n", x)
 			if alreadyInChain(x) {
+				fmt.Fprintf(os.Stderr, "buildCertChains already in chain\n")
 				continue
 			}
 			if !certLikelyIssued(x, current) {
+				fmt.Fprintf(os.Stderr, "buildCertChains not likely issued\n")
 				continue
 			}
+			fmt.Fprintf(os.Stderr, "buildCertChains recursion\n")
 			chains = append(chains, buildCertChains(trusted, untrusted, append(chain, x), depth)...)
 		}
 
 		if !alreadyInChain(trusted) && certLikelyIssued(trusted, current) {
+			fmt.Fprintf(os.Stderr, "buildCertChains trusted not in chain, likely issued\n")
 			chains = append(chains, append(chain, trusted))
 		}
 	}
 
 	if current.Equal(trusted) {
+		fmt.Fprintf(os.Stderr, "buildCertChains adding trusted\n")
 		chains = append(chains, chain)
 	}
+
+	fmt.Fprintf(os.Stderr, "buildCertChains chain length: %d\n", len(chains))
 
 	return chains
 }
